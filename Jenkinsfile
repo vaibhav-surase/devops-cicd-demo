@@ -1,78 +1,50 @@
 pipeline {
-
     agent any
 
     environment {
         AWS_REGION = 'ap-south-1'
         AWS_ACCOUNT_ID = '583749796090'
-        ECR_REPOSITORY = 'devops-cicd-demo'
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_REPO = 'devops-cicd-demo'
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Build Docker Image') {
             steps {
-                checkout scm
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                sh """
-                docker build \
-                -t ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} .
-                """
+                sh '''
+                    docker build -t $ECR_REPO:2 .
+                    docker tag $ECR_REPO:2 \
+                    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:2
+                '''
             }
         }
 
         stage('Login to ECR') {
             steps {
-                sh """
-                aws ecr get-login-password \
-                --region ${AWS_REGION} | \
-                docker login \
-                --username AWS \
-                --password-stdin ${ECR_REGISTRY}
-                """
+                withCredentials([
+                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION | \
+                        docker login --username AWS --password-stdin \
+                        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+                    '''
+                }
             }
         }
 
         stage('Push to ECR') {
             steps {
-                sh """
-                docker push \
-                ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-                """
-            }
-        }
-
-        stage('Deploy to EKS') {
-            steps {
-                sh """
-                kubectl set image deployment/devops-cicd-demo \
-                devops-cicd-demo=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-                """
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                sh 'kubectl rollout status deployment/devops-cicd-demo'
-                sh 'kubectl get pods'
+                withCredentials([
+                    string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                        docker push \
+                        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:2
+                    '''
+                }
             }
         }
     }
