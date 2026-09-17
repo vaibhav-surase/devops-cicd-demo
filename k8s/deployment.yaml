@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-cicd-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: devops-cicd-demo
+  template:
+    metadata:
+      labels:
+        app: devops-cicd-demo
+    spec:
+      containers:
+        - name: devops-cicd-demo
+          image: 583749796090.dkr.ecr.ap-south-1.amazonaws.com/devops-cicd-demo:1
+          ports:
+            - containerPort: 8080
