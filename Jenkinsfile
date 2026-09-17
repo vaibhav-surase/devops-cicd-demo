@@ -5,6 +5,8 @@ pipeline {
         AWS_REGION = 'ap-south-1'
         AWS_ACCOUNT_ID = '583749796090'
         ECR_REPO = 'devops-cicd-demo'
+        IMAGE_TAG = '2'
+        ECR_IMAGE = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
     }
 
     stages {
@@ -12,9 +14,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build -t $ECR_REPO:2 .
-                    docker tag $ECR_REPO:2 \
-                    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:2
+                    docker build -t $ECR_REPO:$IMAGE_TAG .
+                    docker tag $ECR_REPO:$IMAGE_TAG $ECR_IMAGE
                 '''
             }
         }
@@ -41,10 +42,30 @@ pipeline {
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        docker push \
-                        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:2
+                        docker push $ECR_IMAGE
                     '''
                 }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl set image deployment/devops-cicd-demo \
+                    devops-cicd-demo=$ECR_IMAGE
+
+                    kubectl rollout status deployment/devops-cicd-demo
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                    kubectl get deployment devops-cicd-demo
+                    kubectl get pods
+                    kubectl get svc
+                '''
             }
         }
     }
