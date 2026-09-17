@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION = 'ap-south-1'
         AWS_ACCOUNT_ID = '583749796090'
         ECR_REPO = 'devops-cicd-demo'
-        IMAGE_TAG = '2'
+        IMAGE_TAG = "${BUILD_NUMBER}"
         ECR_IMAGE = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
     }
 
