@@ -27,7 +27,7 @@ pipeline {
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
-                        aws ecr get-login-password --region $AWS_REGION | \
+                        aws ecr get-login-password --region $AWS_REGION |
                         docker login --username AWS --password-stdin \
                         $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
                     '''
@@ -51,9 +51,20 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
+                    echo "===== Kubernetes Context ====="
+                    kubectl config current-context
+
+                    echo "===== Deployments ====="
+                    kubectl get deployments
+
+                    echo "===== Pods ====="
+                    kubectl get pods
+
+                    echo "===== Updating Image ====="
                     kubectl set image deployment/devops-cicd-demo \
                     devops-cicd-demo=$ECR_IMAGE
 
+                    echo "===== Rollout ====="
                     kubectl rollout status deployment/devops-cicd-demo
                 '''
             }
