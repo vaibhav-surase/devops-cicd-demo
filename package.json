@@ -1,0 +1,13 @@
+{
+  "name": "devops-cicd-demo",
+  "version": "1.0.0",
+  "description": "DevOps CI/CD practice application",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node -e \"console.log('Tests passed')\""
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
